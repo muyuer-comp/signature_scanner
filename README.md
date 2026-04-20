@@ -14,7 +14,8 @@
 ```
 .
 ├── signature_scanner.py    # 核心扫描引擎
-└── sign                    # 签名库文件（一行一个签名）
+├── sign                    # 签名库文件（一行一个签名）
+└──scan_programs.py         # 调用器程序（非必需）
 ```
 
 ## 快速开始
@@ -34,7 +35,7 @@ SoftCnApp
 恶意签名1
 恶意签名2
 ```
-**温馨提示：**仓库提供了部分PUA软件的数字签名，***其真实性未经严格测试***，请自行判断使用。
+**温馨提示：** 仓库提供了部分PUA软件的数字签名，***其真实性未经严格测试***，请自行判断使用。
 
 
 ### 使用示例
@@ -80,6 +81,12 @@ SignatureScanner(quiet=True, debug=False)
 |------|------|--------|------|
 | quiet | bool | True | 静默模式 |
 | debug | bool | False | 调试模式，输出详细运行信息 |
+
+调用器在quiet参数下输出的内容：
+<img width="914" height="298" alt="image" src="https://github.com/user-attachments/assets/17ba9ce7-9094-4a20-be99-79ecb1b1f72c" />
+
+调用器在debug参数下输出的内容：
+<img width="883" height="210" alt="image" src="https://github.com/user-attachments/assets/0f9b44b3-0e29-48ba-99de-4d6b70600eb8" />
 
 #### 方法
 
