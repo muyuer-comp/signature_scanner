@@ -2,96 +2,119 @@ import os
 import sys
 from signature_scanner import SignatureScanner
 
-def scan_directory(directory_path, debug=False):
-    """扫描指定目录下的所有 PE 文件"""
-    scanner = SignatureScanner(debug=debug)
-
-    if not os.path.exists(directory_path):
-        print(f"错误：目录不存在 - {directory_path}")
-        return
-
-    print(f"正在扫描目录: {directory_path}")
-    print("-" * 50)
-
-    threats_found = []
-    files_scanned = 0
-    files_with_signatures = 0
-    files_without_signatures = 0
-
-    for root, dirs, files in os.walk(directory_path):
-        for filename in files:
-            file_path = os.path.join(root, filename)
-            ext = os.path.splitext(filename)[1].lower()
-
-            if ext not in ['.exe', '.dll', '.sys', '.ocx']:
-                continue
-
-            files_scanned += 1
-
-            if debug:
-                print(f"\n正在扫描: {file_path}")
-
-            result = scanner.scan_file(file_path)
-
-            if result:
-                threats_found.append((file_path, result))
-                print(f"[威胁] {file_path}")
-                print(f"      类型: {result}")
-                print(f"      签名: {os.path.basename(file_path)}")
-            else:
-                if debug:
-                    print(f"[无威胁] {file_path}")
-
-    print("-" * 50)
-    print(f"\n扫描完成！")
-    print(f"扫描文件总数: {files_scanned}")
-    print(f"检测到威胁数: {len(threats_found)}")
-
-    if threats_found:
-        print("\n=== 威胁列表 ===")
-        for path, threat_type in threats_found:
-            print(f"  {threat_type} - {path}")
-
-    return threats_found
-
 def print_help():
     """显示帮助信息"""
     print("数字签名扫描工具")
     print("用法:")
-    print("  python scan_programs.py [目录路径] [--debug]")
-    print("  python scan_programs.py --help")
-    print("")
+    print(r"  python scan_signnature.py [目录路径或文件路径]")
+    print(r"  python scan_signnature.py [目录路径或文件路径] --quiet")
+    print(r"  python scan_signnature.py --help")
+    print()
     print("参数:")
-    print("  目录路径    要扫描的目录路径 (可选，默认: C:\\Users\\Administrator\\Downloads\\Programs)")
-    print("  --debug     启用调试模式，显示详细信息")
-    print("  --help      显示此帮助信息")
-    print("")
+    print(r"  目录路径或文件路径    要扫描的目录或文件路径 (可选，默认: C:\Users\Administrator\Downloads\Programs)")
+    print("  --quiet              静默模式，只显示扫描结果")
+    print("  --help               显示此帮助信息")
+    print()
     print("示例:")
-    print("  python scan_programs.py C:\\Windows\\System32")
-    print("  python scan_programs.py D:\\Downloads --debug")
+    print(r"  python scan_signnature.py C:\Windows\System32")
+    print(r"  python scan_signnature.py D:\Downloads\test.exe")
+    print(r"  python scan_signnature.py E:\Scripts --quiet")
+
+def scan_file(file_path, scanner):
+    """扫描单个文件"""
+    try:
+        threat, signature = scanner.scan_file(file_path)
+        if threat:
+            return {
+                'file': file_path,
+                'threat': threat,
+                'signature': signature
+            }
+    except Exception as e:
+        pass
+    return None
+
+def scan_directory(directory, scanner):
+    """扫描目录"""
+    threats = []
+    file_count = 0
+    
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            file_path = os.path.join(root, file)
+            file_count += 1
+            
+            threat_info = scan_file(file_path, scanner)
+            if threat_info:
+                threats.append(threat_info)
+    
+    return threats, file_count
+
+def main():
+    """主函数"""
+    # 默认参数
+    target = r"C:\Users\Administrator\Downloads\Programs"
+    quiet = False
+    
+    # 解析命令行参数
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--help":
+            print_help()
+            return
+        
+        if len(sys.argv) > 2 and sys.argv[2] == "--quiet":
+            target = sys.argv[1]
+            quiet = True
+        else:
+            target = sys.argv[1]
+    
+    # 初始化扫描器
+    scanner = SignatureScanner(debug=False)
+    
+    # 检查目标
+    if not os.path.exists(target):
+        print(f"错误: 路径不存在 - {target}")
+        return
+    
+    threats = []
+    file_count = 0
+    
+    if os.path.isfile(target):
+        # 扫描单个文件
+        if not quiet:
+            print(f"正在扫描文件: {target}")
+            print("-" * 50)
+        
+        threat_info = scan_file(target, scanner)
+        if threat_info:
+            threats.append(threat_info)
+        file_count = 1
+    else:
+        # 扫描目录
+        if not quiet:
+            print(f"正在扫描目录: {target}")
+            print("-" * 50)
+        
+        threats, file_count = scan_directory(target, scanner)
+    
+    # 显示扫描结果
+    if not quiet:
+        print("-" * 50)
+        print()
+    
+    print("扫描完成！")
+    print(f"扫描文件总数: {file_count}")
+    print(f"检测到威胁数: {len(threats)}")
+    
+    if threats:
+        print()
+        print("=== 威胁列表 ===")
+        for threat_info in threats:
+            print(f"  {threat_info['threat']} - {threat_info['file']}")
+    
+    # 按回车键退出
+    if not quiet:
+        input("\n按回车键退出...")
 
 if __name__ == "__main__":
-    # 默认目录
-    default_dir = r"C:\Users\Administrator\Downloads\Programs"
-    target_dir = default_dir
-    debug_mode = False
-
-    # 解析命令行参数
-    args = [arg for arg in sys.argv[1:] if not arg.startswith('--')]
-    flags = [arg for arg in sys.argv[1:] if arg.startswith('--')]
-
-    # 处理目录参数
-    if args:
-        target_dir = args[0]
-
-    # 处理标志
-    if "--debug" in flags:
-        debug_mode = True
-    if "--help" in flags:
-        print_help()
-        sys.exit(0)
-
-    # 扫描目录
-    scan_directory(target_dir, debug=debug_mode)
-
-    input("\n按回车键退出...")
+    main()
