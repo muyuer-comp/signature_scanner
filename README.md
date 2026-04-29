@@ -142,4 +142,4 @@ else:
 
 ## License
 
-LGPL v2.1
+LGPL v3
